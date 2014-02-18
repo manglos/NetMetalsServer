@@ -1,15 +1,19 @@
 
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
+
 
 @SuppressWarnings("serial")
 class QuadrantWorker extends RecursiveAction{
 
 	TempPoint rQuad[][], wQuad[][];
 	final int THRESHOLD = 8;
+	ForkJoinPool myPool;
+	
 	
 	QuadrantWorker(TempPoint[][] r, TempPoint[][] w){
 		rQuad = r;
-		wQuad = w;
+		wQuad = w;	
 	}
 	
 	TempPoint[][] split(TempPoint m[][], int q){
@@ -58,41 +62,63 @@ class QuadrantWorker extends RecursiveAction{
 	
 	@Override
 	protected void compute() {
-		//if(Main.debug)System.out.println("My quad is " + rQuad.length + "x" + rQuad[0].length);
-		
-		if(rQuad.length <= THRESHOLD){
-			computeDirectly();
-		}
-		else{
-			TempPoint rOne[][], rTwo[][], rThree[][], rFour[][];
-			TempPoint wOne[][], wTwo[][], wThree[][], wFour[][];
+		myPool = new ForkJoinPool();
+			TempPoint rSplit[][][] = new TempPoint[4][][];
 			
-			rOne = split(rQuad, 1);
-			rTwo = split(rQuad, 2);
-			rThree = split(rQuad, 3);
-			rFour = split(rQuad, 4);
+			for(int i=0;i<rSplit.length;i++){
+				rSplit[i] = split(rQuad, i+1);
+			}
+			for(int i=0;i<rSplit.length;i++){
+				Main.workers.get(i).setHeader(new Header(Main.S, Main.T, Main.C, Main.M_HEIGHT, Main.M_WIDTH, Main.MAX_TEMP), new Packet(getLeftNeighbors(rSplit[i], i+1), rSplit[i], getRightNeighbors(rSplit[i], i+1)));
+			}
 			
-			wOne = split(wQuad, 1);
-			wTwo = split(wQuad, 2);
-			wThree = split(wQuad, 3);
-			wFour = split(wQuad, 4);
+			if(Main.debug)System.out.println("Map split, starting workers...");
 			
-			QuadrantWorker q[] = new QuadrantWorker[4];
-			q[0] = new QuadrantWorker(rOne, wOne);
-			q[1] = new QuadrantWorker(rTwo, wTwo);
-			q[2] = new QuadrantWorker(rThree, wThree);
-			q[3] = new QuadrantWorker(rFour, wFour);
+			invokeAll(Main.workers);
 			
-			invokeAll(q);
-			
-		}
+			for(ClientWorker c : Main.workers){
+				merge(c.getNewMap());
+			}
 	}
 
-	private void computeDirectly() {
-		for(int i=0;i<rQuad.length;i++){
-			for(int j=0;j<rQuad[0].length;j++){
-				wQuad[i][j].setTemp(rQuad[i][j].calcTemp());
+	private TempPoint[][] getLeftNeighbors(TempPoint[][] rq, int index){
+
+		if(index==1)
+			return null;
+		else{
+			TempPoint result[][] = new TempPoint[1][Main.M_HEIGHT];
+
+			for(int i=0;i<Main.M_HEIGHT;i++){
+				result[0][i] = Main.rMap[rq[0][i].xPos - 1][i];
 			}
-		}		
+			return result;
+		}
+	}
+	
+	private TempPoint[][] getRightNeighbors(TempPoint[][] rq, int index){
+
+		if(index==4)
+			return null;
+		else{
+			TempPoint result[][] = new TempPoint[1][Main.M_HEIGHT];
+
+			for(int i=0;i<Main.M_HEIGHT;i++){
+				result[0][i] = Main.rMap[(rq[rq.length-1][i].xPos + 1)][i];
+			}
+			return result;
+		}
+	}
+	
+	private void merge(TempPoint[][] quad){
+		if(Main.debug)System.out.println("Merging...");
+		
+		for(int i=0;i<quad.length;i++){
+			for(int j=0;j<quad[0].length;j++){
+				
+				wQuad[quad[i][j].xPos][quad[i][j].yPos].setTemp(quad[i][j].getTemp());
+				
+			}
+		}
+		
 	}
 }

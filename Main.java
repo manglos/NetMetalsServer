@@ -35,11 +35,14 @@ public class Main extends JFrame{
 	public static Long MAX_TEMP=(long)(10000 * 100);
 	static Color GRID_COLOR;
 	public static ForkJoinPool myPool = new ForkJoinPool();
+	public static ArrayList<ClientWorker> workers;// = new ArrayList<ClientWorker>();
+	public static ArrayList<Thread> workerThreads;
+	public static volatile boolean headerSent = false;
 	
 	public Main(){
 		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setLocationRelativeTo(null); 
+		setLocation(50, 50); 
 		setLayout(new BorderLayout());
 		
 		centerPanel = new JPanel();
@@ -60,7 +63,8 @@ public class Main extends JFrame{
 	public static void main(String[] args) throws InterruptedException{
 		
 		
-		
+		workers = new ArrayList<ClientWorker>();
+		workerThreads = new ArrayList<Thread>();
 		int argNum=0;
 		C = new double[3];
 		C[0]=.75;
@@ -128,28 +132,29 @@ public class Main extends JFrame{
 			}
 		}
 		
-		
-		/*//GRID_COLOR = getColor(1301);
-		
 		SwingUtilities.invokeLater(
 				   new Runnable() {
 				       public void run() {
 					   createAndShowGUI();
 				       }
-				   });*/
+				   });
 		
-		MyServer server = new MyServer();
-		server.listen();
-		/*for(;;){
+		
+		
+		for(;;){
+			MyServer server = new MyServer();
+			server.listen();
+			
 			QuadrantWorker headQuad = new QuadrantWorker(rMap, wMap);
 			myPool.invoke(headQuad);
-			
+			if(debug)System.out.println("Got all data back, switching maps...");
 			switchMaps();
+			workers = new ArrayList<ClientWorker>();
 			
 			if(debug)System.out.println(printMap(rMap));
 			if(debug)System.out.println(printMap(wMap));
 			
-		}*/
+		}
 		
 		
 		

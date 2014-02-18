@@ -1,5 +1,4 @@
 import java.io.Serializable;
-import java.util.Random;
 
 
 public class TempPoint implements Serializable{
